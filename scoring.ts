@@ -9,10 +9,10 @@ const PITCH_CONFIG = { CENTS_TOLERANCE_FOR_GAMEPLAY: 60, FFT_ENERGY_THRESHOLD: 1
  * Detects if a chord is being played by checking for energy at target frequencies.
  * @private
  */
-function detectChord(chordNotes: TabEvent['notes'], fftData: Uint8Array, audioContext: AudioContext, transposeOffset: number, analyser: AnalyserNode) {
+function detectChord(chordNotes: TabEvent['notes'], fftData: Uint8Array, audioContext: AudioContext, analyser: AnalyserNode) {
     if (!fftData || !audioContext || !analyser) return false;
     for (const note of chordNotes) {
-        const targetFreq = Utils.midiToFrequency(note.pitch + transposeOffset);
+        const targetFreq = Utils.midiToFrequency(note.pitch);
         const freqIndex = Math.round(targetFreq * (analyser.fftSize / 2) / audioContext.sampleRate);
         let maxEnergy = 0;
         // Check a small window around the target frequency index
@@ -28,15 +28,15 @@ function detectChord(chordNotes: TabEvent['notes'], fftData: Uint8Array, audioCo
  * Scores a single note/chord event based on timing and pitch.
  * @public
  */
-export function scoreEvent(event: TabEvent, timeToPlayhead: number, detectedFrequency: number | null, fftData: Uint8Array, audioContext: AudioContext, transposeOffset: number, analyser: AnalyserNode) {
+export function scoreEvent(event: TabEvent, timeToPlayhead: number, detectedFrequency: number | null, fftData: Uint8Array, audioContext: AudioContext, analyser: AnalyserNode) {
     const absTimeToPlayhead = Math.abs(timeToPlayhead);
     if (timeToPlayhead <= 0 && absTimeToPlayhead < TIMING_WINDOWS.LATE) {
         let correct = false;
         if (event.isChord) {
-            correct = detectChord(event.notes, fftData, audioContext, transposeOffset, analyser);
+            correct = detectChord(event.notes, fftData, audioContext, analyser);
         } else if (detectedFrequency !== null) {
             const note = event.notes[0];
-            const targetFrequency = Utils.midiToFrequency(note.pitch + transposeOffset);
+            const targetFrequency = Utils.midiToFrequency(note.pitch);
             let centsDifference = 1200 * Math.log2(detectedFrequency / targetFrequency);
             // Normalize cents difference to be within a reasonable range
             if (Math.abs(centsDifference) > 800) centsDifference %= 1200;

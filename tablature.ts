@@ -3,11 +3,16 @@ import { Logger } from './logger';
 import { getInstrument } from './config';
 import type { NoteEvent, TabEvent, InstrumentID, Note } from './types';
 
+interface TrellisNode {
+    fingering: Note[];
+    internalCost: number;
+}
+
 /**
  * Finds all possible fretboard positions for a given MIDI note.
  * @private
  */
-function findPossiblePositions(midiNote: number, instrumentId: InstrumentID, usedStrings: Set<number> = new Set()) {
+export function findPossiblePositions(midiNote: number, instrumentId: InstrumentID, usedStrings: Set<number> = new Set()) {
     const positions: { string: number; fret: number }[] = [];
     const instrumentConfig = getInstrument(instrumentId);
     instrumentConfig.tuning.forEach((openStringMidi, stringIndex) => {
@@ -20,19 +25,16 @@ function findPossiblePositions(midiNote: number, instrumentId: InstrumentID, use
     return positions;
 }
 
+
 /**
- * Calculates a cost for a given fingering to determine its playability.
- * A lower cost is better. This function penalizes awkward or difficult fingerings.
+ * Calculates the inherent "difficulty" cost of a single fingering position.
+ * Lower cost is better.
  * @private
  */
-function calculateCost(previousFingering: Note[] | null, nextFingering: Note[]) {
+function getInternalFingeringCost(fingering: Note[]): number {
     let cost = 0;
-    const frets = nextFingering.map(n => n.fret).filter(f => f > 0);
+    const frets = fingering.map(n => n.fret).filter(f => f > 0);
 
-    // --- High Fret Penalty (NEW) ---
-    // Add a strong, non-linear penalty for using high frets (e.g., above 12th).
-    // This encourages the algorithm to choose fingerings on higher strings with lower
-    // frets, making passages with high notes more comfortable to play.
     const HIGH_FRET_THRESHOLD = 12;
     const HIGH_FRET_PENALTY_FACTOR = 0.3;
     if (frets.length > 0) {
@@ -43,37 +45,46 @@ function calculateCost(previousFingering: Note[] | null, nextFingering: Note[]) 
         });
     }
 
-    // --- Existing Penalties (adjusted) ---
-    // 1. Penalize large fret spans in chords (difficult stretches)
     if (frets.length > 1) {
         cost += Math.pow(Math.max(...frets) - Math.min(...frets), 2) * 0.5;
     }
 
-    // 2. Reward using open strings (easy to play)
-    if (nextFingering.some(n => n.fret === 0)) {
+    if (fingering.some(n => n.fret === 0)) {
         cost -= 2.0;
     }
-
-    // 3. Penalize hand movement between notes/chords
-    if (previousFingering && previousFingering.length > 0) {
-        const prevFrets = previousFingering.map(n => n.fret).filter(f => f > 0);
-        if (frets.length > 0 && prevFrets.length > 0) {
-            const avgNextFret = frets.reduce((s, f) => s + f, 0) / frets.length;
-            const avgPrevFret = prevFrets.reduce((s, f) => s + f, 0) / prevFrets.length;
-            cost += Math.abs(avgNextFret - avgPrevFret) * 1.5; // Big jumps are costly
-        }
-        const avgNextString = nextFingering.reduce((s, n) => s + n.string, 0) / nextFingering.length;
-        const avgPrevString = previousFingering.reduce((s, n) => s + n.string, 0) / previousFingering.length;
-        cost += Math.abs(avgNextString - avgPrevString) * 0.2; // String jumps have a smaller cost
-    }
     
-    // 4. Small general penalty for overall fret position to break ties
     if (frets.length > 0) {
         cost += frets.reduce((s, f) => s + f, 0) / frets.length * 0.1;
     }
 
     return cost;
 }
+
+/**
+ * Calculates the cost of transitioning between two fingerings.
+ * Penalizes large hand movements.
+ * @private
+ */
+function getTransitionCost(previousFingering: Note[] | null, nextFingering: Note[]): number {
+    if (!previousFingering || previousFingering.length === 0) return 0;
+    
+    let cost = 0;
+    const frets = nextFingering.map(n => n.fret).filter(f => f > 0);
+    const prevFrets = previousFingering.map(n => n.fret).filter(f => f > 0);
+
+    if (frets.length > 0 && prevFrets.length > 0) {
+        const avgNextFret = frets.reduce((s, f) => s + f, 0) / frets.length;
+        const avgPrevFret = prevFrets.reduce((s, f) => s + f, 0) / prevFrets.length;
+        cost += Math.abs(avgNextFret - avgPrevFret) * 1.5;
+    }
+
+    const avgNextString = nextFingering.reduce((s, n) => s + n.string, 0) / nextFingering.length;
+    const avgPrevString = previousFingering.reduce((s, n) => s + n.string, 0) / previousFingering.length;
+    cost += Math.abs(avgNextString - avgPrevString) * 0.2;
+    
+    return cost;
+}
+
 
 /**
  * Generates optimal tablature from MIDI note events using a Viterbi-like algorithm.
@@ -83,8 +94,7 @@ export function generateTablature(noteEvents: NoteEvent[], instrumentId: Instrum
     if (!noteEvents || noteEvents.length === 0) return [];
     
     const instrumentConfig = getInstrument(instrumentId);
-    const trellis: Note[][][] = [];
-    const filteredNoteEvents: NoteEvent[] = [];
+    const trellis: TrellisNode[][] = [];
 
     for (const event of noteEvents) {
         // 1. Filter out notes that are completely outside the instrument's range.
@@ -98,18 +108,18 @@ export function generateTablature(noteEvents: NoteEvent[], instrumentId: Instrum
         if (notesWithPossiblePositions.length === 0) {
             // None of the notes in this event are playable, so skip it.
             if (event.notes.length > 0) {
-                 Logger.log(`Skipping event at time ${event.notes[0].startTime.toFixed(2)}s: No playable notes found for this event.`, 'TablatureGeneration');
+                 Logger.warn(`Skipping event at time ${event.notes[0].startTime.toFixed(2)}s: No playable notes found for this event.`, 'TablatureGeneration');
             }
             continue;
         }
 
         if (notesWithPossiblePositions.length < event.notes.length) {
-            Logger.log(`Simplified chord at time ${event.notes[0].startTime.toFixed(2)}s: Some notes were out of range.`, 'TablatureGeneration');
+            Logger.warn(`Simplified chord at time ${event.notes[0].startTime.toFixed(2)}s: Some notes were out of range.`, 'TablatureGeneration');
         }
 
         // 2. Check if the number of notes to play exceeds the number of strings.
         if (notesWithPossiblePositions.length > instrumentConfig.numStrings) {
-            Logger.log(`Skipping event at time ${event.notes[0].startTime.toFixed(2)}s: Chord has more notes (${notesWithPossiblePositions.length}) than available strings (${instrumentConfig.numStrings}).`, 'TablatureGeneration');
+            Logger.warn(`Skipping event at time ${event.notes[0].startTime.toFixed(2)}s: Chord has more notes (${notesWithPossiblePositions.length}) than available strings (${instrumentConfig.numStrings}).`, 'TablatureGeneration');
             continue;
         }
 
@@ -140,27 +150,26 @@ export function generateTablature(noteEvents: NoteEvent[], instrumentId: Instrum
         }
 
         findCombinations(0, [], new Set());
-
+        
         if (allChordFingerings.length > 0) {
-            const newEvent: NoteEvent = {
-                notes: playableNotes,
-                isChord: playableNotes.length > 1
-            };
-            trellis.push(allChordFingerings);
-            filteredNoteEvents.push(newEvent);
+            let fingeringsWithCost: TrellisNode[] = allChordFingerings.map(f => ({ fingering: f, internalCost: getInternalFingeringCost(f) }));
+            fingeringsWithCost.sort((a, b) => a.internalCost - b.internalCost);
+            // OPTIMIZATION: Prune the number of fingering candidates at each step to keep the search space manageable.
+            const MAX_FINGERINGS = 30;
+            trellis.push(fingeringsWithCost.slice(0, MAX_FINGERINGS));
         } else {
             if (event.notes.length > 0) {
-                Logger.log(`Skipping unplayable event at time ${event.notes[0].startTime.toFixed(2)}s`, 'TablatureGeneration');
+                Logger.warn(`Skipping unplayable event at time ${event.notes[0].startTime.toFixed(2)}s`, 'TablatureGeneration');
             }
         }
     }
 
     if (trellis.length === 0) {
-        Logger.log("No playable notes found.", 'TablatureGeneration');
+        Logger.warn("Tablature generation resulted in 0 events. This may cause an error on the main thread.", 'TablatureGeneration');
         return [];
     }
 
-    const costs: number[][] = [trellis[0].map(fingering => calculateCost(null, fingering))];
+    const costs: number[][] = [trellis[0].map(node => node.internalCost)];
     const backpointers: number[][] = [new Array(trellis[0].length).fill(0)];
 
     for (let t = 1; t < trellis.length; t++) {
@@ -168,9 +177,11 @@ export function generateTablature(noteEvents: NoteEvent[], instrumentId: Instrum
         const currentBackpointers: number[] = [];
         for (let i = 0; i < trellis[t].length; i++) {
             let minCost = Infinity, bestPrevNode = -1;
-            const currentFingering = trellis[t][i];
+            const currentFingeringNode = trellis[t][i];
             for (let j = 0; j < trellis[t - 1].length; j++) {
-                const totalCost = costs[t - 1][j] + calculateCost(trellis[t - 1][j], currentFingering);
+                const prevFingeringNode = trellis[t-1][j];
+                const transitionCost = getTransitionCost(prevFingeringNode.fingering, currentFingeringNode.fingering);
+                const totalCost = costs[t - 1][j] + transitionCost + currentFingeringNode.internalCost;
                 if (totalCost < minCost) {
                     minCost = totalCost;
                     bestPrevNode = j;
@@ -204,11 +215,12 @@ export function generateTablature(noteEvents: NoteEvent[], instrumentId: Instrum
     }
 
     return optimalPathIndices.map((nodeIndex, t) => {
-        const fingering = trellis[t][nodeIndex];
+        const fingering = trellis[t][nodeIndex].fingering;
         fingering.sort((a, b) => a.string - b.string);
         return { notes: fingering, isChord: fingering.length > 1 };
     });
 }
+
 
 /**
  * Assigns logical fretting fingers to a generated tablature.

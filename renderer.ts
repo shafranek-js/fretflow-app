@@ -1,4 +1,5 @@
 
+
 import { state } from './state';
 import * as InstrumentConfig from './config';
 import { getMeasureDuration, findClosestNoteIndex } from './game';
@@ -130,7 +131,7 @@ function drawNote(note: Note, noteId: NoteId, overrideY: number | null = null, p
     state.dynamicCtx!.textAlign = 'center';
     state.dynamicCtx!.textBaseline = 'middle';
 
-    const fretToDisplay = state.isEditMode ? note.fret : note.fret + state.transposeOffset;
+    const fretToDisplay = note.fret;
     state.dynamicCtx!.fillText(String(fretToDisplay), x + baseWidth / 2, y + 1);
     state.dynamicCtx!.shadowColor = 'transparent';
     state.dynamicCtx!.shadowBlur = 0;
@@ -291,7 +292,7 @@ export function drawStaticLayer() {
     }
 }
 
-export function drawDynamicLayer(timestamp = 0, e: MouseEvent | null = null) {
+export function drawDynamicLayer(timestamp = 0) {
     if (!state.dynamicCtx || !state.currentSongData) return;
     const {
         tablature: tabData = [],
@@ -347,9 +348,9 @@ export function drawDynamicLayer(timestamp = 0, e: MouseEvent | null = null) {
 
         if (x + visualWidth > -50) {
             let overrideY = null;
-            if (e && state.isDragging && state.draggedNoteIndex?.eventIndex === i) {
+            if (state.mousePosition && state.isDragging && state.draggedNoteIndex?.eventIndex === i) {
                 const rect = state.ui.dynamicCanvas.getBoundingClientRect();
-                overrideY = e.clientY - rect.top;
+                overrideY = state.mousePosition.y - rect.top;
             }
             drawTabEvent(tabEvent, i, overrideY, x, visualWidth);
         }
@@ -379,7 +380,7 @@ export function renderMinimap() {
             const x = (note.startTime / totalDuration) * canvasWidth;
             const w = (note.duration / totalDuration) * canvasWidth;
             const y = ((note.string + 0.5) / config.numStrings) * canvasHeight;
-            if (note.feedback === 'perfect' || note.feedback === 'good') {
+            if (note.feedback && ['perfect', 'good', 'okay', 'late', 'early'].includes(note.feedback)) {
                 state.minimapCtx!.fillStyle = FEEDBACK_COLORS.perfect;
             } else if (note.feedback === 'wrong' || note.feedback === 'missed') {
                 state.minimapCtx!.fillStyle = FEEDBACK_COLORS.wrong;
@@ -390,28 +391,31 @@ export function renderMinimap() {
         });
     });
 
-    const loopStartX = (state.loopStartTime / totalDuration) * canvasWidth;
-    const loopEndX = (state.loopEndTime !== null ? state.loopEndTime / totalDuration : 1) * canvasWidth;
+    // In performance mode or edit mode, don't show the loop controls
+    if (state.currentMode !== 'performance' && !state.isEditMode) {
+        const loopStartX = (state.loopStartTime / totalDuration) * canvasWidth;
+        const loopEndX = (state.loopEndTime !== null ? state.loopEndTime / totalDuration : 1) * canvasWidth;
 
-    state.minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    state.minimapCtx.fillRect(0, 0, loopStartX, canvasHeight);
-    if (state.loopEndTime !== null) {
-        state.minimapCtx.fillRect(loopEndX, 0, canvasWidth - loopEndX, canvasHeight);
+        state.minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        state.minimapCtx.fillRect(0, 0, loopStartX, canvasHeight);
+        if (state.loopEndTime !== null) {
+            state.minimapCtx.fillRect(loopEndX, 0, canvasWidth - loopEndX, canvasHeight);
+        }
+        
+        const hx = MINIMAP_HANDLE_W / 2;
+        const safeStartX = Math.max(hx, Math.min(loopStartX, canvasWidth - hx));
+        const safeEndX = Math.max(hx, Math.min(loopEndX, canvasWidth - hx));
+
+        state.minimapCtx.fillStyle = '#facc15';
+        state.minimapCtx.fillRect(safeStartX - 1, 0, 2, canvasHeight);
+        state.minimapCtx.fillRect(safeEndX - 1, 0, 2, canvasHeight);
+
+        state.minimapCtx.fillStyle = 'white';
+        state.minimapCtx.fillRect(safeStartX - hx, 0, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
+        state.minimapCtx.fillRect(safeStartX - hx, canvasHeight - MINIMAP_HANDLE_H, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
+        state.minimapCtx.fillRect(safeEndX - hx, 0, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
+        state.minimapCtx.fillRect(safeEndX - hx, canvasHeight - MINIMAP_HANDLE_H, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
     }
-
-    const hx = MINIMAP_HANDLE_W / 2;
-    const safeStartX = Math.max(hx, Math.min(loopStartX, canvasWidth - hx));
-    const safeEndX = Math.max(hx, Math.min(loopEndX, canvasWidth - hx));
-
-    state.minimapCtx.fillStyle = '#facc15';
-    state.minimapCtx.fillRect(safeStartX - 1, 0, 2, canvasHeight);
-    state.minimapCtx.fillRect(safeEndX - 1, 0, 2, canvasHeight);
-
-    state.minimapCtx.fillStyle = 'white';
-    state.minimapCtx.fillRect(safeStartX - hx, 0, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
-    state.minimapCtx.fillRect(safeStartX - hx, canvasHeight - MINIMAP_HANDLE_H, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
-    state.minimapCtx.fillRect(safeEndX - hx, 0, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
-    state.minimapCtx.fillRect(safeEndX - hx, canvasHeight - MINIMAP_HANDLE_H, MINIMAP_HANDLE_W, MINIMAP_HANDLE_H);
 
     state.minimapCtx.fillStyle = 'white';
     state.minimapCtx.shadowColor = 'rgba(255, 255, 255, 0.7)';

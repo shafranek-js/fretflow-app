@@ -1,5 +1,6 @@
 
 
+
 html, body {
     height: 100%;
     margin: 0;
@@ -9,6 +10,12 @@ body {
     font-family: 'Inter', sans-serif; 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* NEW: Add a subtle background pattern */
+    background-color: #0d1117; /* A slightly darker base */
+    background-image: 
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0),
+        linear-gradient(to right, #111827, #1f2937);
+    background-size: 24px 24px, 100% 100%;
 }
 
 /* Hover effects for interactive elements */
@@ -37,39 +44,104 @@ body {
 }
 
 /* --- Tuner-Specific Styles --- */
-#tuner-needle {
-    width: 2px;
-    height: 40%;
-    background-color: #f87171; /* red-400 */
-    position: absolute;
-    left: 50%;
-    top: 10%;
-    transform-origin: bottom;
-    transition: transform 0.2s ease-out, background-color 0.2s;
-    border-radius: 2px;
-}
-#tuner-circle {
-    width: 280px;
-    height: 280px;
-}
-@media (min-width: 768px) {
-    #tuner-circle {
-        width: 320px;
-        height: 320px;
+@keyframes tuner-glow {
+    0%, 100% {
+        box-shadow: 0 0 40px 10px rgba(74, 222, 128, 0.3);
+        border-color: rgba(74, 222, 128, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 60px 20px rgba(74, 222, 128, 0.5);
+        border-color: rgba(74, 222, 128, 0.5);
     }
 }
-.good #tuner-needle {
-    background-color: #4ade80; /* green-400 */
+
+#tuner-screen {
+    /* Enhanced gradient for more depth */
+    background: radial-gradient(ellipse at center, #1e293b 0%, #0d1117 100%);
 }
+
+#tuner-needle {
+    width: 10px; 
+    height: 48%; 
+    background: linear-gradient(to top, #ef4444, #f87171);
+    position: absolute;
+    left: calc(50% - 5px); 
+    top: 2%;
+    transform-origin: bottom;
+    transition: transform 0.2s ease-out, background 0.2s;
+    border-radius: 5px 5px 0 0;
+    box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    /* Tapered needle effect */
+    clip-path: polygon(0% 100%, 100% 100%, 100% 5%, 50% 0, 0 5%);
+}
+
+#tuner-circle {
+    /* Make tuner as large as possible, respecting aspect ratio, with a small margin. */
+    width: min(90vw, 90vh);
+    height: min(90vw, 90vh);
+    border: 12px solid rgba(255,255,255,0.05);
+    background: 
+        radial-gradient(ellipse at center, rgba(17, 24, 39, 0.9) 0%, rgba(30, 41, 59, 0.95) 60%, rgba(13, 17, 23, 1) 100%),
+        /* Subtle texture behind */
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239CA3AF' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+#tuner-circle.good {
+    animation: tuner-glow 1.8s infinite ease-in-out;
+}
+
+.good #tuner-needle {
+    background: linear-gradient(to top, #22c55e, #4ade80);
+    box-shadow: 0 0 20px #4ade80;
+}
+
+#tuner-note-name {
+    /* Larger, more responsive font size */
+    font-size: clamp(4rem, 30vmin, 15rem);
+    font-weight: 800; /* extrabold */
+    line-height: 1;
+    /* Add a subtle text effect */
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+#tuner-status {
+    /* Larger, more responsive font size */
+    font-size: clamp(1.5rem, 6vmin, 3rem); 
+    height: auto;
+    margin-top: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+#tuner-freq {
+    font-size: clamp(1.25rem, 4vmin, 2rem);
+}
+
 
 /* --- Pop-up Editor Styles --- */
 #note-editor-popup {
     transition: opacity 0.1s ease-in-out;
 }
-.finger-btn.active {
-    background-color: #3b82f6;
-    color: white;
+
+.finger-btn {
+    /* Add transition for smooth hover and active state changes */
+    transition: transform 0.1s ease-out, filter 0.1s ease-out, box-shadow 0.15s ease-in-out;
 }
+
+.finger-btn:hover {
+    /* Apply a brightness filter and lift the button on hover */
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+.finger-btn.active {
+    /* The selected button gets a blue ring and is slightly lifted */
+    box-shadow: 0 0 0 2px #3b82f6; /* blue-500 ring */
+    transform: translateY(-1px);
+    filter: brightness(1); /* Ensure active button isn't overly bright on hover */
+}
+
 
 /* --- Streak Multiplier Styles --- */
 #streak-display {
@@ -123,4 +195,163 @@ body {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* NEW: Styles for redesigned library page */
+#song-library-screen {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#select-guitar-btn, #select-ukulele-btn, #select-practice-btn, #select-performance-btn {
+    transition: all 0.2s ease-in-out;
+}
+#select-guitar-btn.active, #select-ukulele-btn.active, #select-practice-btn.active, #select-performance-btn.active {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+#more-actions-menu {
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+    transform: scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+}
+#more-actions-menu.open {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.empty-state-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    padding: 2rem;
+    color: #9ca3af; /* gray-400 */
+    border: 2px dashed #374151; /* gray-700 */
+    border-radius: 1rem;
+    background-color: rgba(31, 41, 55, 0.3); /* gray-800 with transparency */
+    animation: fadeIn 0.5s ease-in-out;
+}
+.empty-state-container svg {
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.empty-state-container h3 {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 600; /* semibold */
+    color: white;
+    margin-bottom: 0.5rem;
+}
+.empty-state-container p {
+    margin-bottom: 1.5rem;
+}
+.empty-state-container .add-song-btn-large {
+    display: inline-flex;
+    align-items: center;
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    font-weight: 700; /* bold */
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: background-color 0.2s, transform 0.2s;
+    cursor: pointer;
+}
+.empty-state-container .add-song-btn-large:hover {
+    background-color: #1d4ed8; /* blue-700 */
+    transform: translateY(-2px);
+}
+.empty-state-container .add-song-btn-large svg {
+    width: 1.25rem; /* w-5 */
+    height: 1.25rem; /* h-5 */
+    margin-right: 0.5rem; /* mr-2 */
+    opacity: 1;
+}
+
+/* --- Favorite Button Styles --- */
+.favorite-btn {
+    color: #6b7280; /* gray-500 */
+    transition: color 0.2s, transform 0.2s;
+}
+.favorite-btn:hover {
+    color: #f59e0b; /* amber-500 */
+    transform: scale(1.2);
+}
+.favorite-btn.favorited {
+    color: #f59e0b; /* amber-500 */
+}
+.favorite-btn.favorited:hover {
+    color: #fcd34d; /* amber-300 */
+}
+
+/* --- Log Viewer Styles --- */
+#log-viewer-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+#log-viewer.open {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+#log-viewer-content::-webkit-scrollbar {
+    width: 8px;
+}
+#log-viewer-content::-webkit-scrollbar-track {
+    background: #2d3748; /* gray-800 */
+}
+#log-viewer-content::-webkit-scrollbar-thumb {
+    background: #4a5568; /* gray-600 */
+    border-radius: 4px;
+}
+#log-viewer-content::-webkit-scrollbar-thumb:hover {
+    background: #718096; /* gray-500 */
+}
+
+.log-entry {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: rgba(45, 55, 72, 0.5);
+    border-left: 4px solid;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.log-entry-DEBUG { border-color: #6366f1; /* indigo-500 */ }
+.log-entry-INFO { border-color: #3b82f6; /* blue-500 */ }
+.log-entry-WARN { border-color: #f59e0b; /* amber-500 */ }
+.log-entry-ERROR { border-color: #ef4444; /* red-500 */ }
+
+.log-meta {
+    color: #9ca3af; /* gray-400 */
+    margin-right: 0.75rem;
+}
+.log-context {
+    color: #a78bfa; /* violet-400 */
+    font-weight: 600;
+}
+
+/* --- Confirmation Dialog Styles --- */
+#confirm-dialog-backdrop {
+    opacity: 0;
+    pointer-events: none;
+}
+#confirm-dialog-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+#confirm-dialog.open {
+    transform: scale(1);
+    opacity: 1;
 }

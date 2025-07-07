@@ -1,4 +1,5 @@
 
+
 import { state, resetGameState } from './state';
 import { Logger } from './logger';
 import * as Utils from './utils';
@@ -36,7 +37,7 @@ function scoringLogic(timestamp: number) {
 
     // Update UI with target/detected note info
     if (currentTabEvent) {
-        const targetPitch = currentTabEvent.notes[0].pitch + state.transposeOffset;
+        const targetPitch = currentTabEvent.notes[0].pitch;
         const targetNoteName = currentTabEvent.isChord ? "Chord" : Utils.NOTE_NAMES[targetPitch % 12];
         state.ui.targetNoteDisplay.textContent = `Target: ${targetNoteName}`;
         const detectedNoteName = state.currentDetectedMidi !== null ? Utils.NOTE_NAMES[state.currentDetectedMidi % 12] : '--';
@@ -71,7 +72,7 @@ function scoringLogic(timestamp: number) {
         if (!isInsideScoringRegion) continue;
 
         // Call the centralized scoring function
-        const scoreDelta = scoreEvent(tabEvent, timeToPlayhead, state.currentDetectedFrequency, state.fftData!, state.audioContext!, state.transposeOffset, state.analyser!);
+        const scoreDelta = scoreEvent(tabEvent, timeToPlayhead, state.currentDetectedFrequency, state.fftData!, state.audioContext!, state.analyser!);
         
         if (scoreDelta) {
             tabEvent.isScored = true;
@@ -101,7 +102,9 @@ function animationLoop(timestamp: number) {
     state.lastTimestamp = timestamp;
     const tempoRate = parseInt((state.ui.tempoSlider as HTMLInputElement).value) / 100;
     state.songTime += deltaTime * tempoRate;
-    if (state.loopEndTime !== null && state.songTime >= state.loopEndTime) {
+
+    // In practice mode, handle looping. In performance mode, play once.
+    if (state.currentMode === 'practice' && state.loopEndTime !== null && state.songTime >= state.loopEndTime) {
         const measureDuration = getMeasureDuration();
         const loopStartMeasureTime = Math.floor(state.loopStartTime / measureDuration) * measureDuration;
         const preRollStartTime = Math.max(0, loopStartMeasureTime - measureDuration);
@@ -117,13 +120,17 @@ function animationLoop(timestamp: number) {
                 delete tabEvent.isScored;
             }
         });
+        Logger.info('Looping back to start', 'Game', { loopStartTime: state.loopStartTime, newSongTime: state.songTime });
     }
+
     state.currentScrollX = state.songTime * state.currentSongData.pixelsPerSecond;
     state.currentNoteIndex = findClosestNoteIndex(state.songTime);
     scoringLogic(timestamp);
     drawDynamicLayer(timestamp);
     renderMinimap();
-    if (state.currentSongData.totalDuration && state.songTime > state.currentSongData.totalDuration + 2 && (state.loopEndTime === null || state.loopEndTime >= state.currentSongData.totalDuration)) {
+    
+    // Check if the song has ended
+    if (state.currentSongData.totalDuration && state.songTime > state.currentSongData.totalDuration + 2) {
         endSession();
     } else {
         state.animationFrameId = requestAnimationFrame(animationLoop);
@@ -132,6 +139,7 @@ function animationLoop(timestamp: number) {
 
 export function startAnimation() {
     if (!state.currentSongData || state.isPlaying || !state.currentSongData.tablature || state.currentSongData.tablature.length === 0) return;
+    Logger.info('Starting animation', 'Game');
     const isLooping = state.loopEndTime !== null && state.loopEndTime < state.currentSongData.totalDuration;
     if (isLooping && state.songTime <= state.loopStartTime) {
         const measureDuration = getMeasureDuration();
@@ -153,6 +161,7 @@ export function startAnimation() {
 
 export function pauseAnimation() {
     if (!state.isPlaying || state.isPaused) return;
+    Logger.info('Pausing animation', 'Game');
     state.isPaused = true;
     cls(state.ui.playIcon, { 'hidden': false });
     cls(state.ui.pauseIcon, { 'hidden': true });
@@ -161,6 +170,7 @@ export function pauseAnimation() {
 
 export function resumeAnimation() {
     if (!state.isPlaying || !state.isPaused) return;
+    Logger.info('Resuming animation', 'Game');
     state.isPaused = false;
     cls(state.ui.playIcon, { 'hidden': true });
     cls(state.ui.pauseIcon, { 'hidden': false });
@@ -224,20 +234,33 @@ export function resetSongState(rewindToLoopStart = false) {
 
 export function endSession() {
     if (!state.currentSongData) return;
+    Logger.info(`Session ended in ${state.currentMode} mode.`, 'Game', { score: state.gameState.score, perfect: state.gameState.perfectNotes, attempted: state.gameState.attemptedNotes });
+    
+    // Capture score BEFORE it gets reset by stopAnimation()
+    const finalScore = state.gameState.score;
     const oldHighScore = state.currentSongData.highScore || 0;
-    state.ui.summaryScore.textContent = String(state.gameState.score);
+
+    // Update summary screen UI
+    state.ui.summaryScore.textContent = String(finalScore);
     const accuracy = state.gameState.attemptedNotes > 0 ? Math.round((state.gameState.perfectNotes / state.gameState.attemptedNotes) * 100) : 0;
     state.ui.summaryAccuracy.textContent = `${accuracy}%`;
-    stopAnimation();
-    showSummaryScreen();
-    if (state.gameState.score > oldHighScore) {
+
+    // Save high score if applicable
+    if (state.currentMode === 'performance' && finalScore > oldHighScore) {
+        Logger.info(`New high score achieved in Performance Mode: ${finalScore} with ${accuracy}% accuracy.`, 'Game');
         const songToUpdate = state.songs.find(s => s.id === state.currentSongData!.id);
         if (songToUpdate) {
-            songToUpdate.highScore = state.gameState.score;
-            // This is a side effect that should be handled by a dedicated library/storage manager
+            songToUpdate.highScore = finalScore;
+            songToUpdate.accuracy = accuracy;
             localStorage.setItem(`fretflow_songs_${state.currentInstrument}`, JSON.stringify(state.songs));
         }
+    } else if (state.currentMode === 'practice') {
+        Logger.info(`Practice session score ${finalScore} will not be saved.`, 'Game');
     }
+    
+    // Now stop the animation and show the summary
+    stopAnimation();
+    showSummaryScreen();
 }
 
 export function findClosestNoteIndex(time: number) {

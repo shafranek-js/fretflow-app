@@ -4,6 +4,7 @@ import type { Song, TabEvent, CurrentSongData, NoteId, InstrumentID, Note } from
 export const state = {
     // App status
     currentInstrument: 'guitar' as InstrumentID,
+    currentMode: 'practice' as 'practice' | 'performance',
     songs: [] as Song[],
     currentSongData: null as CurrentSongData | null,
     isPlaying: false,
@@ -40,20 +41,28 @@ export const state = {
     draggedNoteIndex: null as NoteId | null,
     selectedNoteIndex: null as NoteId | null,
     hoveredNoteIndex: null as NoteId | null,
+    mousePosition: null as { x: number, y: number } | null,
     
     // Settings
     transposeOffset: 0,
+    stringShiftOffset: 0,
     zoomLevel: 1.0,
-    globalSettings: { noteSize: 1.0, stringSpacing: 1.0, stringThickness: 1.0 },
+    globalSettings: { 
+        noteSize: 1.0, 
+        stringSpacing: 1.0, 
+        stringThickness: 1.0,
+        selectedInstrument: 25, // Default to Steel String Guitar
+    },
 
     // Audio
     audioContext: null as AudioContext | null,
     analyser: null as AnalyserNode | null,
     micStream: null as MediaStream | null,
     synthMasterGain: null as GainNode | null,
+    synth: null as any, // soundfont-player instance
+    isSoundfontLoading: false,
     pitchDetectionBuffer: null as Float32Array | null,
     fftData: null as Uint8Array | null,
-    activeOscillators: [] as { osc: OscillatorNode, gain: GainNode }[],
     currentDetectedMidi: null as number | null,
     currentDetectedFrequency: null as number | null,
     

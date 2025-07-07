@@ -1,8 +1,9 @@
 
+
 declare global {
     // This makes MidiParser available as a global variable in all contexts (window, worker) for TypeScript.
     var MidiParser: any;
-
+    
     interface Window {
         webkitAudioContext?: typeof AudioContext;
     }
@@ -43,6 +44,7 @@ export interface Song {
     id: string;
     title: string;
     highScore: number;
+    accuracy?: number;
     tablature: string; // JSON string of TabEvent[]
     midiTempo: number;
     midiTimeSignature: string; // JSON string of {numerator, denominator}
@@ -50,6 +52,8 @@ export interface Song {
     playbackTempo: number;
     transpose: number;
     zoomLevel: number;
+    stringShift?: number;
+    isFavorite?: boolean;
 }
 
 export interface CurrentSongData extends Omit<Song, 'tablature'> {

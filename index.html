@@ -22,22 +22,21 @@
     <!-- Google Fonts: Inter for a clean, modern typeface -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- MIDI Parser JS Library for reading .mid files -->
-    <script src="https://cdn.jsdelivr.net/npm/midi-parser-js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="index.css">
 <script type="importmap">
 {
   "imports": {
-    "vite": "https://esm.sh/vite@^7.0.1"
+    "vite": "https://esm.sh/vite@^7.0.2",
+    "soundfont-player": "https://esm.sh/soundfont-player"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-gray-900 text-white">
+<body class="text-white">
 
     <!-- Main Application Container -->
     <div id="app-container" class="w-full h-full flex flex-col">
@@ -53,68 +52,126 @@
         <!-- ================================== -->
         <!-- =====   SONG LIBRARY SCREEN      ===== -->
         <!-- ================================== -->
-        <div id="song-library-screen" class="flex flex-col h-full p-4 sm:p-8">
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 flex-shrink-0">
-                <div>
-                    <h1 id="library-title" class="text-3xl sm:text-4xl font-bold">Song Library</h1>
-                     <p class="text-xs text-gray-400 mt-1 font-mono">Songs are saved in your browser.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
-                    <div class="flex items-center bg-gray-700 rounded-lg p-1">
-                        <button id="select-guitar-btn" class="px-3 py-1 text-sm rounded-md">Guitar</button>
-                        <button id="select-ukulele-btn" class="px-3 py-1 text-sm rounded-md">Ukulele</button>
+        <div id="song-library-screen" class="flex flex-col h-full">
+            <!-- HERO SECTION -->
+            <div class="text-center p-8 sm:p-12 flex-shrink-0">
+                <h1 id="library-title" class="text-4xl sm:text-5xl font-bold tracking-tight text-white">Your Song Library</h1>
+                <p class="text-lg text-gray-400 mt-2 max-w-2xl mx-auto">All your songs, ready to play for <span id="instrument-name-display" class="font-semibold text-blue-400">Guitar</span>.</p>
+            </div>
+
+            <!-- CONTROLS -->
+            <div class="px-4 sm:px-8 pb-6 flex flex-col sm:flex-row justify-between items-center gap-4 flex-shrink-0">
+                <!-- Left: Instrument Toggle & Search -->
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center bg-gray-800/50 backdrop-blur-sm rounded-lg p-1 shadow-lg">
+                        <button id="select-guitar-btn" class="px-4 py-1.5 text-sm font-medium rounded-md">Guitar</button>
+                        <button id="select-ukulele-btn" class="px-4 py-1.5 text-sm font-medium rounded-md">Ukulele</button>
                     </div>
-                    <button id="fullscreen-btn" class="nav-btn flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                        </svg>
-                        Full Screen
-                    </button>
-                    <button id="tuner-nav-btn" class="nav-btn flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Tuner</button>
-                    <button id="export-library-btn" class="nav-btn flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Export Library</button>
-                    <label for="import-library-input" class="nav-btn flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Import Library</label>
-                    <input type="file" id="import-library-input" class="hidden" accept=".json">
-                    <label id="add-song-btn" for="midi-file-input" class="nav-btn flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                     <!-- Search Input -->
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <input type="text" id="library-search-input" placeholder="Search songs..." class="bg-gray-700/80 backdrop-blur-sm text-white placeholder-gray-400 rounded-lg py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-3">
+                    <label id="add-song-btn" for="midi-file-input" class="nav-btn flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
                         Add Songs
                     </label>
-                    <input type="file" id="midi-file-input" class="hidden" accept=".mid,.midi" multiple>
+                    <input type="file" id="midi-file-input" class="hidden" accept=".mid,.midi,.xml" multiple>
+                    
+                    <button id="library-tuner-btn" title="Tuner" class="p-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg nav-btn">
+                        <svg class="w-5 h-5" viewBox="0 0 234.1 213.86" fill="currentColor">
+                           <g>
+                            <path d="M39.54,6.9l-7.24-6.9C11.47,21.86,0,50.53,0,80.73s11.47,58.87,32.29,80.73l7.24-6.9c-19.05-19.99-29.54-46.21-29.54-73.83S20.49,26.89,39.54,6.9Z"/>
+                            <path d="M201.8,0l-7.24,6.9c19.05,19.99,29.53,46.21,29.53,73.83s-10.49,53.84-29.53,73.83l7.24,6.9c20.83-21.86,32.29-50.53,32.29-80.73S222.63,21.86,201.8,0Z"/>
+                            <path d="M62.87,29.12c-13.33,13.99-20.66,32.31-20.66,51.6s7.34,37.62,20.66,51.6l7.24-6.9c-11.55-12.12-17.9-27.99-17.9-44.71s6.36-32.59,17.9-44.71l-7.24-6.9Z"/>
+                            <path d="M55.05,21.68l-7.24-6.9c-17.01,17.86-26.38,41.28-26.38,65.95s9.37,48.09,26.38,65.95l7.24-6.9c-15.23-15.99-23.62-36.96-23.62-59.05s8.39-43.06,23.62-59.05Z"/>
+                            <path d="M186.29,14.78l-7.24,6.9c15.23,15.99,23.62,36.96,23.62,59.05s-8.39,43.06-23.62,59.05l7.24,6.9c17.01-17.86,26.38-41.28,26.38-65.95s-9.37-48.09-26.38-65.95Z"/>
+                            <path d="M171.23,29.12l-7.24,6.9c11.55,12.12,17.9,27.99,17.9,44.71s-6.36,32.59-17.9,44.71l7.24,6.9c13.33-13.99,20.66,32.31,20.66-51.6s-7.34-37.62-20.66-51.6Z"/>
+                            <path d="M133.74,12.76v90.01c0,9.2-7.49,16.69-16.69,16.69s-16.69-7.49-16.69-16.69V12.76h-19.99c0,.13-.01.26-.01.39v89.62c0,16.71,11.33,30.9,26.69,35.28v47.42c-3.63,2.92-5.95,7.4-5.95,12.42,0,8.81,7.14,15.95,15.95,15.95s15.95-7.14,15.95-15.95c0-5.02-2.33-9.5-5.95-12.42v-47.42c15.36-4.38,26.69-18.57,26.69-35.28V13.16c0-.13,0-.26-.01-.39h-19.99Z"/>
+                           </g>
+                        </svg>
+                    </button>
+
+                    <!-- More Actions Dropdown -->
+                    <div class="relative">
+                        <button id="more-actions-btn" class="p-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg nav-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                            </svg>
+                        </button>
+                        <div id="more-actions-menu" class="hidden absolute right-0 mt-2 w-56 origin-top-right bg-gray-800 rounded-md shadow-2xl z-10 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="more-actions-btn">
+                                <button id="fullscreen-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">
+                                   Full Screen
+                                </button>
+                                <button id="log-viewer-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">
+                                   View Logs
+                                </button>
+                                <div class="border-t border-gray-700 my-1"></div>
+                                <label for="import-library-input" class="cursor-pointer w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">Import Library</label>
+                                <input type="file" id="import-library-input" class="hidden" accept=".json">
+                                <button id="export-library-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">
+                                   Export Library
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </header>
-            <div id="song-list" class="space-y-4 flex-grow overflow-y-auto pr-2"><p class="text-gray-500">Loading songs...</p></div>
+            </div>
+
+            <!-- SONG LIST / EMPTY STATE -->
+            <div id="song-list" class="flex-grow overflow-y-auto px-4 sm:px-8 pb-8">
+                <!-- Content dynamically inserted by renderSongLibrary -->
+            </div>
         </div>
 
         <!-- ================================== -->
         <!-- =====       TUNER SCREEN         ===== -->
         <!-- ================================== -->
-        <div id="tuner-screen" class="hidden flex-col h-full p-4 sm:p-8 items-center justify-center">
-            <div class="w-full max-w-md">
-                 <header class="flex items-center justify-start mb-4 flex-shrink-0 w-full">
-                    <button id="tuner-back-btn" class="flex items-center text-gray-400 hover:text-white transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                        Back to Library
-                    </button>
-                </header>
-                <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-2xl text-center">
-                    <div id="tuner-circle" class="relative mx-auto mb-6 bg-gray-900/50 rounded-full flex items-center justify-center">
-                        <svg class="absolute w-full h-full" viewBox="0 0 100 100">
-                            <line x1="50" y1="5" x2="50" y2="15" stroke="#4f46e5" stroke-width="1"/>
-                            <defs>
-                                <g id="tick">
-                                    <line x1="50" y1="5" x2="50" y2="10" stroke="#6b7280" stroke-width="0.5"/>
-                                </g>
-                            </defs>
-                            <use href="#tick" transform="rotate(-45 50 50)" /><use href="#tick" transform="rotate(-30 50 50)" /><use href="#tick" transform="rotate(-15 50 50)" /><use href="#tick" transform="rotate(15 50 50)" /><use href="#tick" transform="rotate(30 50 50)" /><use href="#tick" transform="rotate(45 50 50)" />
-                        </svg>
-                        <div id="tuner-needle" style="transform: rotate(0deg);"></div>
-                        <div class="z-10 text-center">
-                            <div id="tuner-note-name" class="text-7xl font-bold text-white tracking-tighter">-</div>
-                            <div id="tuner-status" class="text-xl font-semibold text-gray-500 h-7">-</div>
-                        </div>
+        <div id="tuner-screen" class="hidden relative flex h-full items-center justify-center">
+            <header class="absolute top-4 left-4 sm:top-8 sm:left-8 z-10">
+                <button id="tuner-back-btn" class="flex items-center text-gray-400 hover:text-white transition-colors bg-gray-900/50 backdrop-blur-sm px-4 py-2 rounded-lg nav-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                </button>
+            </header>
+            
+            <!-- This inner wrapper ensures content is stacked vertically -->
+            <div class="flex flex-col items-center justify-center text-center">
+                <div id="tuner-circle" class="relative bg-gray-800/60 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl">
+                    <svg class="absolute w-full h-full" viewBox="0 0 100 100">
+                        <!-- Center marker -->
+                        <line x1="50" y1="5" x2="50" y2="15" stroke="#3b82f6" stroke-width="2"/>
+                        <!-- Ticks -->
+                        <defs>
+                            <g id="tick">
+                                <line x1="50" y1="5" x2="50" y2="10" stroke="#6b7280" stroke-width="0.75"/>
+                            </g>
+                            <g id="big_tick">
+                                <line x1="50" y1="5" x2="50" y2="12" stroke="#9ca3af" stroke-width="1.25"/>
+                            </g>
+                        </defs>
+                        <use href="#big_tick" transform="rotate(-45 50 50)" />
+                        <use href="#tick" transform="rotate(-30 50 50)" />
+                        <use href="#tick" transform="rotate(-15 50 50)" />
+                        <use href="#tick" transform="rotate(15 50 50)" />
+                        <use href="#tick" transform="rotate(30 50 50)" />
+                        <use href="#big_tick" transform="rotate(45 50 50)" />
+                    </svg>
+                    <div id="tuner-needle" style="transform: rotate(0deg);"></div>
+                    <div class="z-10 text-center">
+                        <div id="tuner-note-name" class="font-bold text-white tracking-tighter">-</div>
+                        <div id="tuner-status" class="font-semibold text-gray-500">-</div>
                     </div>
-                    <div id="tuner-freq" class="text-lg text-gray-400 mb-6">0 Hz</div>
-                    <p id="tuner-mic-msg" class="text-yellow-400 mb-4 hidden">Microphone access required for tuner.</p>
                 </div>
+                <div id="tuner-freq" class="mt-8 text-2xl text-gray-400 font-mono">0 Hz</div>
+                <p id="tuner-mic-msg" class="text-yellow-400 mt-4 hidden">Microphone access required for tuner.</p>
             </div>
         </div>
 
@@ -129,30 +186,82 @@
                         Back
                     </button>
                 </div>
-                <!-- SCORE AND STREAK DISPLAY -->
-                <div class="flex-1 flex justify-center items-center space-x-4">
-                    <div id="streak-display" class="font-mono text-xl font-bold text-gray-400">1x</div>
-                    <div id="current-score-display" class="whitespace-nowrap text-left font-mono text-lg">Score: 0</div>
-                    <div id="edit-buttons-container" class="flex items-center space-x-2 hidden">
-                        <button id="undo-btn" class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Undo</button>
-                        <button id="redo-btn" class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Redo</button>
+                <!-- Center Area: Mode Display & Score -->
+                <div class="flex-1 flex flex-col items-center justify-center space-y-1">
+                    <!-- Mode Label Area -->
+                    <div class="h-6 text-sm font-bold tracking-widest flex items-center space-x-2">
+                        <div id="practice-mode-label" class="hidden items-center text-cyan-400 space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734-2.106-2.106a1.532 1.532 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106A1.532 1.532 0 0111.49 3.17zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                            </svg>
+                            <span>PRACTICE MODE</span>
+                        </div>
+                        <div id="performance-mode-label" class="hidden items-center text-amber-400 space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span>PERFORMANCE MODE</span>
+                        </div>
+                        <div id="edit-mode-label" class="hidden flex items-center space-x-2 bg-indigo-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                            <span>EDIT MODE</span>
+                        </div>
+                    </div>
+                    <!-- Score/Streak or Edit Buttons -->
+                    <div class="h-8 flex items-center">
+                        <div id="practice-info-container" class="flex items-center space-x-4">
+                            <div id="streak-display" class="font-mono text-xl font-bold text-gray-400">1x</div>
+                            <div id="current-score-display" class="whitespace-nowrap text-left font-mono text-lg">Score: 0</div>
+                        </div>
+                        <div id="edit-buttons-container" class="flex items-center space-x-2 hidden">
+                            <button id="undo-btn" class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Undo</button>
+                            <button id="redo-btn" class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Redo</button>
+                        </div>
                     </div>
                 </div>
-                <div class="flex-1 flex justify-end items-center gap-4">
-                     <button id="rewind-btn" title="Start Over" class="local-setting-control flex flex-col items-center justify-center text-gray-400 hover:text-white px-3 py-1 rounded-md">
+                <div class="flex-1 flex justify-end items-center gap-2">
+                    <!-- Mode Switcher -->
+                    <div id="mode-switcher" class="hidden items-center bg-gray-800/50 backdrop-blur-sm rounded-lg p-1 shadow-lg">
+                        <button id="select-practice-btn" class="px-3 py-1.5 text-xs font-semibold rounded-md transition-colors">Practice</button>
+                        <button id="select-performance-btn" class="px-3 py-1.5 text-xs font-semibold rounded-md transition-colors">Performance</button>
+                    </div>
+
+                     <button id="rewind-btn" title="Start Over" class="local-setting-control flex flex-col items-center justify-center text-gray-400 hover:text-white px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
                         <svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor">
                           <g id="Layer_11" data-name="Layer_1">
                             <path d="M.86,1.61v7.34h7.43l-2.24-2.21c-.18-.17-.18-.46,0-.64.46-.4,.75-.64,1.25-.99.67-.43,1.4-.77,2.18-.99.74-.21,1.52-.34,2.32-.34h.05c1.12,0,2.2.22,3.19.62,1.02.42,1.94,1.03,2.7,1.79.77.76,1.39,1.67,1.81,2.67.41.97.63,2.04.63,3.14s-.22,2.18-.63,3.16c-.42,1.01-1.04,1.91-1.81,2.67-.77.76-1.69,1.37-2.7,1.79-.99.4-2.06.62-3.18.62h-.01c-.39,0-.8-.03-1.2-.09-.39-.05-.79-.14-1.18-.26-.48-.16-.78-.28-1.24-.48-1.02-.49-1.93-1.18-2.67-2.02-.72-.82-1.28-1.79-1.63-2.84H0c.07.36.17.71.28,1.05.12.38.26.74.41,1.09.14.34.31.68.5,1.01v.03c.19.32.39.64.6.95,1.11,1.64,2.62,2.99,4.38,3.92,1.69.89,3.61,1.4,5.67,1.4h.04c1.64,0,3.21-.32,4.64-.91,1.47-.6,2.79-1.48,3.9-2.57l.07-.07c1.1-1.1,2-2.41,2.6-3.86.59-1.4.92-2.96.92-4.59s-.33-3.19-.92-4.59v-.03c-.62-1.46-1.52-2.77-2.64-3.87-1.11-1.1-2.45-1.99-3.93-2.61C15.09.32,13.52,0,11.88,0h-.01C11.01,0,10.18.09,9.38.25h-.02c-.82.17-1.6.42-2.34.74l-.71.34c-.54.28-1.06.59-1.54.94l-.03.02c-.48.34-.93.73-1.36,1.14-.18.17-.47.17-.65,0L.86,1.61Z"/>
                           </g>
                         </svg>
                       </button>
-                    <button id="settings-btn" class="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg">
+                    <button id="practice-tuner-btn" title="Tuner" class="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                         <svg class="w-6 h-6" viewBox="0 0 234.1 213.86" fill="currentColor">
+                           <g>
+                            <path d="M39.54,6.9l-7.24-6.9C11.47,21.86,0,50.53,0,80.73s11.47,58.87,32.29,80.73l7.24-6.9c-19.05-19.99-29.54-46.21-29.54-73.83S20.49,26.89,39.54,6.9Z"/>
+                            <path d="M201.8,0l-7.24,6.9c19.05,19.99,29.53,46.21,29.53,73.83s-10.49,53.84-29.53,73.83l7.24,6.9c20.83-21.86,32.29-50.53,32.29-80.73S222.63,21.86,201.8,0Z"/>
+                            <path d="M62.87,29.12c-13.33,13.99-20.66,32.31-20.66,51.6s7.34,37.62,20.66,51.6l7.24-6.9c-11.55-12.12-17.9-27.99-17.9-44.71s6.36-32.59,17.9-44.71l-7.24-6.9Z"/>
+                            <path d="M55.05,21.68l-7.24-6.9c-17.01,17.86-26.38,41.28-26.38,65.95s9.37,48.09,26.38,65.95l7.24-6.9c-15.23-15.99-23.62-36.96-23.62-59.05s8.39-43.06,23.62-59.05Z"/>
+                            <path d="M186.29,14.78l-7.24,6.9c15.23,15.99,23.62,36.96,23.62,59.05s-8.39,43.06-23.62,59.05l7.24,6.9c17.01-17.86,26.38-41.28,26.38-65.95s-9.37-48.09-26.38-65.95Z"/>
+                            <path d="M171.23,29.12l-7.24,6.9c11.55,12.12,17.9,27.99,17.9,44.71s-6.36,32.59-17.9,44.71l7.24,6.9c13.33-13.99,20.66,32.31,20.66-51.6s-7.34-37.62-20.66-51.6Z"/>
+                            <path d="M133.74,12.76v90.01c0,9.2-7.49,16.69-16.69,16.69s-16.69-7.49-16.69-16.69V12.76h-19.99c0,.13-.01.26-.01.39v89.62c0,16.71,11.33,30.9,26.69,35.28v47.42c-3.63,2.92-5.95,7.4-5.95,12.42,0,8.81,7.14,15.95,15.95,15.95s15.95-7.14,15.95-15.95c0-5.02-2.33-9.5-5.95-12.42v-47.42c15.36-4.38,26.69-18.57,26.69-35.28V13.16c0-.13,0-.26-.01-.39h-19.99Z"/>
+                           </g>
+                        </svg>
+                    </button>
+                    <button id="settings-btn" class="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.48.398.668 1.03.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124.073-.044.146-.087.22-.127.332-.183.582.495.645.87l.213-1.281z" />
+  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.48.398.668 1.03.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296 2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124.073-.044.146-.087.22-.127.332-.183.582.495.645.87l.213-1.281z" />
   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 </svg>
                     </button>
+                    <!-- Button to enter edit mode (shown in practice mode) -->
                     <button id="edit-mode-btn" class="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 rounded-md">Edit</button>
+
+                    <!-- Buttons shown *during* edit mode -->
+                    <div id="edit-mode-actions" class="hidden items-center gap-2">
+                        <button id="save-btn" class="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+                        <button id="done-editing-btn" class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 rounded-md">Exit</button>
+                    </div>
                 </div>
             </header>
             
@@ -165,7 +274,7 @@
 
             <div class="overflow-hidden flex-grow flex flex-col">
                 <!-- REFACTOR: Added a static canvas for the background and a dynamic canvas for notes -->
-                <div id="tab-display" class="relative rounded-lg h-full">
+                <div id="tab-display" class="relative rounded-lg flex-grow">
                     <canvas id="static-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
                     <canvas id="practice-canvas" class="absolute top-0 left-0 w-full h-full bg-transparent"></canvas>
                     <div id="note-editor-popup" class="hidden absolute bg-gray-700 rounded-lg shadow-2xl p-3 z-20 w-48 text-white opacity-0 pointer-events-none">
@@ -178,21 +287,24 @@
                                 <button id="editor-fret-up" class="px-2 py-0.5 bg-gray-600 rounded-r-md hover:bg-gray-500">+</button>
                             </div>
                         </div>
-                        <div>
+                        <div class="mb-3">
                             <label class="block text-xs font-bold mb-1">Finger</label>
                             <div id="editor-finger-buttons" class="grid grid-cols-5 gap-1">
-                                <button data-finger="0" class="finger-btn text-xs py-1 bg-gray-600 rounded-md hover:bg-gray-500">0</button>
-                                <button data-finger="1" class="finger-btn text-xs py-1 bg-gray-600 rounded-md hover:bg-gray-500">1</button>
-                                <button data-finger="2" class="finger-btn text-xs py-1 bg-gray-600 rounded-md hover:bg-gray-500">2</button>
-                                <button data-finger="3" class="finger-btn text-xs py-1 bg-gray-600 rounded-md hover:bg-gray-500">3</button>
-                                <button data-finger="4" class="finger-btn text-xs py-1 bg-gray-600 rounded-md hover:bg-gray-500">4</button>
+                                <button data-finger="0" class="finger-btn text-xs py-1 rounded-md">0</button>
+                                <button data-finger="1" class="finger-btn text-xs py-1 rounded-md">1</button>
+                                <button data-finger="2" class="finger-btn text-xs py-1 rounded-md">2</button>
+                                <button data-finger="3" class="finger-btn text-xs py-1 rounded-md">3</button>
+                                <button data-finger="4" class="finger-btn text-xs py-1 rounded-md">4</button>
                             </div>
+                        </div>
+                        <div class="border-t border-gray-600 pt-2">
+                            <button id="editor-delete-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded-md text-sm transition-colors">Delete Note</button>
                         </div>
                     </div>
                 </div>
                 <div class="flex-shrink-0 px-2 py-2 flex items-center gap-4">
-                    <button id="play-pause-btn" class="local-setting-control p-2 text-white hover:text-gray-300"><svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20"><path d="M4.018 15.59a1.5 1.5 0 0 0 2.122.149l8.66-6.192a1.5 1.5 0 0 0 0-2.493L6.14.346A1.5 1.5 0 0 0 4.018 1.84v13.75z"/></svg><svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"/></svg></button>
-                    <canvas id="minimap-canvas" class="flex-grow h-12"></canvas>
+                    <button id="play-pause-btn" class="local-setting-control p-2 text-white hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"><svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20"><path d="M4.018 15.59a1.5 1.5 0 0 0 2.122.149l8.66-6.192a1.5 1.5 0 0 0 0-2.493L6.14.346A1.5 1.5 0 0 0 4.018 1.84v13.75z"/></svg><svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"/></svg></button>
+                    <canvas id="minimap-canvas" class="flex-grow h-12 min-w-0"></canvas>
                 </div>
             </div>
         </div>
@@ -219,20 +331,26 @@
                     <h3 class="text-lg font-semibold mb-4 text-center border-b border-gray-600 pb-2">Local Settings (This Song)</h3>
                     <div class="space-y-4">
                         <div class="flex items-center space-x-2">
-                            <label for="tempo-slider" class="text-sm flex-shrink-0 w-20">Tempo:</label>
+                            <label for="tempo-slider" class="text-sm flex-shrink-0 w-28">Tempo:</label>
                             <input type="range" id="tempo-slider" min="20" max="200" value="100" class="w-full local-setting-control">
                             <span id="tempo-value" class="w-12 text-center text-sm">100%</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <label for="zoom-slider" class="text-sm flex-shrink-0 w-20">Zoom:</label>
+                            <label for="zoom-slider" class="text-sm flex-shrink-0 w-28">Zoom:</label>
                             <input type="range" id="zoom-slider" min="0.1" max="2.0" value="1" step="0.1" class="w-full local-setting-control">
                             <span id="zoom-value" class="w-12 text-center text-sm">100%</span>
                         </div>
                          <div class="flex items-center space-x-2">
-                            <label class="text-sm w-20">Transpose:</label>
+                            <label for="transpose-down-btn" class="text-sm flex-shrink-0 w-28">Transpose (Pitch):</label>
                             <button id="transpose-down-btn" class="local-setting-control px-3 py-1 text-lg bg-gray-700 hover:bg-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">-</button>
                             <span id="transpose-value" class="font-mono w-4 inline-block text-center">0</span>
                             <button id="transpose-up-btn" class="local-setting-control px-3 py-1 text-lg bg-gray-700 hover:bg-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="string-shift-down-btn" class="text-sm flex-shrink-0 w-28">Staff Position:</label>
+                            <button id="string-shift-down-btn" class="local-setting-control px-3 py-1 text-lg bg-gray-700 hover:bg-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">↓</button>
+                            <span id="string-shift-value" class="font-mono w-4 inline-block text-center">0</span>
+                            <button id="string-shift-up-btn" class="local-setting-control px-3 py-1 text-lg bg-gray-700 hover:bg-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">↑</button>
                         </div>
                     </div>
                 </div>
@@ -241,17 +359,23 @@
                     <h3 class="text-lg font-semibold mb-4 text-center border-b border-gray-600 pb-2">Global Settings (All Songs)</h3>
                     <div class="space-y-4">
                          <div class="flex items-center space-x-2">
-                            <label for="note-size-slider" class="text-sm flex-shrink-0 w-20">Note Size:</label>
+                            <label for="instrument-selector" class="text-sm flex-shrink-0 w-28">Synth Voice:</label>
+                            <select id="instrument-selector" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                                <option>Loading instruments...</option>
+                            </select>
+                        </div>
+                         <div class="flex items-center space-x-2">
+                            <label for="note-size-slider" class="text-sm flex-shrink-0 w-28">Note Size:</label>
                             <input type="range" id="note-size-slider" min="0.1" max="1.5" value="1" step="0.1" class="w-full">
                             <span id="note-size-value" class="w-12 text-center text-sm">100%</span>
                         </div>
                          <div class="flex items-center space-x-2">
-                            <label for="string-spacing-slider" class="text-sm flex-shrink-0 w-20">Spacing:</label>
+                            <label for="string-spacing-slider" class="text-sm flex-shrink-0 w-28">Spacing:</label>
                             <input type="range" id="string-spacing-slider" min="0.1" max="1.5" value="1" step="0.1" class="w-full">
                             <span id="string-spacing-value" class="w-12 text-center text-sm">100%</span>
                         </div>
                          <div class="flex items-center space-x-2">
-                            <label for="string-thickness-slider" class="text-sm flex-shrink-0 w-20">Thickness:</label>
+                            <label for="string-thickness-slider" class="text-sm flex-shrink-0 w-28">Thickness:</label>
                             <input type="range" id="string-thickness-slider" min="0.1" max="2.0" value="1" step="0.1" class="w-full">
                             <span id="string-thickness-value" class="w-12 text-center text-sm">100%</span>
                         </div>
@@ -260,7 +384,38 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- LOG VIEWER -->
+    <div id="log-viewer-backdrop" class="hidden fixed inset-0 bg-black bg-opacity-70 z-40 transition-opacity duration-300 opacity-0 pointer-events-none"></div>
+    <div id="log-viewer" class="hidden fixed inset-4 md:inset-8 bg-gray-900/95 backdrop-blur-sm text-white rounded-lg shadow-2xl z-50 flex flex-col p-4 md:p-6 transition-all duration-300 transform scale-95 opacity-0 pointer-events-none">
+        <!-- Header -->
+        <div class="flex-shrink-0 flex justify-between items-center pb-4 border-b border-gray-700">
+            <h2 class="text-xl font-bold">Application Logs</h2>
+            <div class="flex items-center gap-4">
+                <button id="clear-logs-btn" class="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 rounded-md">Clear</button>
+                <button id="close-logs-btn" class="p-2 text-3xl leading-none text-gray-400 hover:text-white">&times;</button>
+            </div>
+        </div>
+        <!-- Log Content -->
+        <div id="log-viewer-content" class="flex-grow overflow-y-auto font-mono text-sm mt-4 space-y-2 pr-2">
+            <!-- Log entries will be injected here -->
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirm-dialog-backdrop" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 transition-opacity duration-200 flex items-center justify-center">
+        <div id="confirm-dialog" class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm transform transition-all duration-200 scale-95 opacity-0">
+            <div class="p-6">
+                <h3 id="confirm-dialog-title" class="text-xl font-bold mb-4 text-white"></h3>
+                <p id="confirm-dialog-message" class="text-gray-300 mb-6"></p>
+            </div>
+            <div id="confirm-dialog-buttons" class="bg-gray-700/50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                <!-- Buttons are dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
