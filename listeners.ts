@@ -254,6 +254,28 @@ function setupSettingsListeners() {
         state.ui.tempoValue.textContent = `${(e.target as HTMLInputElement).value}%`;
     });
     on(state.ui.tempoSlider, 'change', saveCurrentPracticeSettings);
+    on(state.ui.tempoDownBtn, 'click', () => {
+        const slider = state.ui.tempoSlider as HTMLInputElement;
+        const currentValue = parseInt(slider.value, 10);
+        const newValue = Math.max(parseInt(slider.min, 10), currentValue - 1);
+        if (newValue !== currentValue) {
+            slider.value = String(newValue);
+            // Manually trigger events to update UI and save settings
+            slider.dispatchEvent(new Event('input', { bubbles: true }));
+            slider.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+    on(state.ui.tempoUpBtn, 'click', () => {
+        const slider = state.ui.tempoSlider as HTMLInputElement;
+        const currentValue = parseInt(slider.value, 10);
+        const newValue = Math.min(parseInt(slider.max, 10), currentValue + 1);
+        if (newValue !== currentValue) {
+            slider.value = String(newValue);
+            // Manually trigger events to update UI and save settings
+            slider.dispatchEvent(new Event('input', { bubbles: true }));
+            slider.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
     on(state.ui.zoomSlider, 'input', (e: Event) => {
         state.zoomLevel = parseFloat((e.target as HTMLInputElement).value);
         state.ui.zoomValue.textContent = `${Math.round(state.zoomLevel * 100)}%`;
@@ -668,18 +690,42 @@ function setupGlobalListeners() {
         }
     });
     on(document, 'keydown', (e: KeyboardEvent) => {
+        // Prevent shortcuts when typing in an input field.
         if ((e.target as HTMLElement).tagName === 'INPUT') return;
-        if (e.code === 'Space' && !state.ui.practice.classList.contains('hidden')) {
-            e.preventDefault();
-            if (!state.isEditMode) {
+    
+        // Shortcuts for the Practice Screen (when not in edit mode)
+        if (!state.ui.practice.classList.contains('hidden') && !state.isEditMode) {
+            if (e.code === 'Space') {
+                e.preventDefault();
                 if (!state.isPlaying) startAnimation(); else if (state.isPaused) resumeAnimation(); else pauseAnimation();
             }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Programmatically click the rewind button to reuse its logic
+                (state.ui.rewindBtn as HTMLButtonElement).click();
+                Logger.info('Restarted song with Enter key', 'KeyboardShortcut');
+            }
+            if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                // Programmatically click the tempo down button
+                (state.ui.tempoDownBtn as HTMLButtonElement).click();
+                Logger.info('Decreased tempo with "-" key', 'KeyboardShortcut');
+            }
+            if (e.key === '+' || e.key === '=') { // Use '=' key as it doesn't require shift on most layouts
+                e.preventDefault();
+                // Programmatically click the tempo up button
+                (state.ui.tempoUpBtn as HTMLButtonElement).click();
+                Logger.info('Increased tempo with "+" key', 'KeyboardShortcut');
+            }
         }
-        if (!state.isEditMode) return;
-        const isUndo = (e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey;
-        const isRedo = (e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey));
-        if (isUndo) { e.preventDefault(); handleUndo(); }
-        if (isRedo) { e.preventDefault(); handleRedo(); }
+    
+        // Global shortcuts for Edit Mode
+        if (state.isEditMode) {
+            const isUndo = (e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey;
+            const isRedo = (e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey));
+            if (isUndo) { e.preventDefault(); handleUndo(); }
+            if (isRedo) { e.preventDefault(); handleRedo(); }
+        }
     });
     on(window, 'resize', throttle(handleResize, 100));
 }

@@ -31,6 +31,8 @@ export function cacheUiElements() {
         settingsBackdrop: $('#settings-backdrop')!,
         tempoSlider: $('#tempo-slider')!,
         tempoValue: $('#tempo-value')!,
+        tempoDownBtn: $('#tempo-down-btn')!,
+        tempoUpBtn: $('#tempo-up-btn')!,
         noteSizeSlider: $('#note-size-slider')!,
         noteSizeValue: $('#note-size-value')!,
         stringSpacingSlider: $('#string-spacing-slider')!,
@@ -122,6 +124,7 @@ export function updateModeUI() {
     const isPractice = state.currentMode === 'practice';
     const isPerformance = state.currentMode === 'performance';
     const isEdit = state.isEditMode;
+    const areControlsDisabled = isPerformance || isEdit;
 
     // Labels
     cls(state.ui.practiceModeLabel, { 'hidden': !isPractice || isEdit, 'flex': isPractice && !isEdit });
@@ -138,7 +141,6 @@ export function updateModeUI() {
     cls(state.ui.selectPerformanceBtn, { 'active': isPerformance });
 
     // Disable controls in Performance or Edit mode
-    const areControlsDisabled = isPerformance || isEdit;
     $$<HTMLButtonElement>('.local-setting-control').forEach(el => {
         el.disabled = areControlsDisabled;
     });
