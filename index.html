@@ -30,11 +30,12 @@
 {
   "imports": {
     "vite": "https://esm.sh/vite@^7.0.2",
-    "soundfont-player": "https://esm.sh/soundfont-player"
+    "soundfont-player": "https://esm.sh/soundfont-player",
+    "@google/genai": "https://esm.sh/@google/genai@^1.8.0"
   }
 }
 </script>
-  <script type="module" crossorigin src="/fretflow-app/assets/index-DnWNuwp2.js"></script>
+  <script type="module" crossorigin src="/fretflow-app/assets/index-1AqKXddS.js"></script>
   <link rel="stylesheet" crossorigin href="/fretflow-app/assets/index-zIBzJ2XQ.css">
 </head>
 <body class="text-white">
@@ -115,6 +116,8 @@
                                    View Logs
                                 </button>
                                 <div class="border-t border-gray-700 my-1"></div>
+                                <label for="import-song-input" class="cursor-pointer w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">Import Song</label>
+                                <input type="file" id="import-song-input" class="hidden" accept=".json">
                                 <label for="import-library-input" class="cursor-pointer w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">Import Library</label>
                                 <input type="file" id="import-library-input" class="hidden" accept=".json">
                                 <button id="export-library-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700" role="menuitem">
