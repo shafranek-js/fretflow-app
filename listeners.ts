@@ -2,7 +2,7 @@ import { on, throttle, cls, $$ } from './dom';
 import { state } from './state';
 import { Logger, LogLevel, type LogEntry } from './logger';
 import { getNoteIdAt, openNoteEditor, closeNoteEditor, handleUndo, handleRedo, addEditHistory, handleNoteDelete } from './editor';
-import { handleAddSong, handleExport, handleImport, loadLibrary } from './library';
+import { handleAddSong, handleExport, handleImport, handleImportSong, loadLibrary } from './library';
 import { handleSongClick, renderSongLibrary } from './library-ui';
 import { startAnimation, pauseAnimation, resumeAnimation, stopAnimation } from './game';
 import { handleResize, drawDynamicLayer, renderMinimap, getNeckGeometry, drawStaticLayer } from './renderer';
@@ -37,6 +37,7 @@ function setupLibraryListeners() {
     on(state.ui.midiFileInput, 'change', handleAddSong);
     on(state.ui.exportLibraryBtn, 'click', handleExport);
     on(state.ui.importLibraryInput, 'change', handleImport);
+    on(state.ui.importSongInput, 'change', handleImportSong);
     on(state.ui.songList, 'click', handleSongClick);
     updateInstrumentButtons();
 }
@@ -691,7 +692,7 @@ function setupGlobalListeners() {
     });
     on(document, 'keydown', (e: KeyboardEvent) => {
         // Prevent shortcuts when typing in an input field.
-        if ((e.target as HTMLElement).tagName === 'INPUT') return;
+        if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
     
         // Shortcuts for the Practice Screen (when not in edit mode)
         if (!state.ui.practice.classList.contains('hidden') && !state.isEditMode) {

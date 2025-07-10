@@ -1,5 +1,5 @@
 {
-  "name": "FretFlow - Multi-Instrument Edition (MusicXML)",
+  "name": "Copy of FretFlow - Multi-Instrument Edition (Midi Export)",
   "description": "An application to learn and practice playing instruments like guitar and ukulele using tablature from MIDI files.",
   "requestFramePermissions": [
     "microphone"

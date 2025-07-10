@@ -1,5 +1,6 @@
 
 
+
 declare global {
     // This makes MidiParser available as a global variable in all contexts (window, worker) for TypeScript.
     var MidiParser: any;

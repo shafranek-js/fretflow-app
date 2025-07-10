@@ -233,6 +233,49 @@ export function handleImport(e: Event) {
     reader.readAsText(file);
 }
 
+export function handleImportSong(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    Logger.info(`Importing single song from file: ${file.name}`, 'Library');
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const importedSong: Song = JSON.parse(event.target!.result as string);
+
+            // Basic validation
+            if (!importedSong.title || !importedSong.tablature || !importedSong.id) {
+                throw new Error("Invalid song file format. Missing required properties (id, title, tablature).");
+            }
+            
+            // Check for duplicates
+            const existingSong = state.songs.find(s => s.id === importedSong.id);
+            if (existingSong) {
+                // To avoid overwriting, give it a new ID and updated title
+                const originalId = importedSong.id;
+                importedSong.id = 'song_' + Date.now() + Math.random();
+                importedSong.title = `${importedSong.title} (Imported)`;
+                Logger.warn(`Imported song with duplicate ID. Assigned new ID and title.`, 'Library', { oldId: originalId, newId: importedSong.id });
+            }
+
+            state.songs.unshift(importedSong); // Add to the top of the list
+            localStorage.setItem(`fretflow_songs_${state.currentInstrument}`, JSON.stringify(state.songs));
+            renderSongLibrary();
+            Logger.info(`Successfully imported song: ${importedSong.title}`, 'Library');
+            alert(`Successfully imported "${importedSong.title}".`);
+
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            alert(`Failed to import song: ${errorMessage}`);
+            Logger.error(err as Error, "SongImport");
+        } finally {
+            input.value = ''; // Reset input to allow importing the same file again
+        }
+    };
+    reader.readAsText(file);
+}
+
 export function handleExport() {
     if (state.songs.length === 0) {
         alert("Library is empty, nothing to export.");

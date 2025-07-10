@@ -22,6 +22,7 @@ export function cacheUiElements() {
         fullscreenBtn: $('#fullscreen-btn')!,
         exportLibraryBtn: $('#export-library-btn')!,
         importLibraryInput: $('#import-library-input')!,
+        importSongInput: $('#import-song-input')!,
         midiFileInput: $('#midi-file-input')!,
         practiceBackBtn: $('#practice-back-btn')!,
         tunerBackBtn: $('#tuner-back-btn')!,

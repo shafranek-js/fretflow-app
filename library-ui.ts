@@ -2,6 +2,7 @@ import { state } from './state';
 import { Logger } from './logger';
 import { loadSongToPractice } from './practice';
 import type { Song } from './types';
+import { songToMidi } from './midi-generator';
 
 function handleDeleteSong(songId: string) {
     const song = state.songs.find(s => s.id === songId);
@@ -23,6 +24,58 @@ function handleToggleFavorite(songId: string) {
     }
 }
 
+function handleExportSong(songId: string) {
+    const song = state.songs.find(s => s.id === songId);
+    if (!song) {
+        alert("Could not find song to export.");
+        Logger.warn(`Could not find song to export with id: ${songId}`, 'LibraryUI');
+        return;
+    }
+    
+    Logger.info(`Exporting song: ${song.title}`, 'LibraryUI', { songId });
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(song, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    
+    // Sanitize title for filename
+    const sanitizedTitle = song.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `fretflow_song_${sanitizedTitle}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function handleExportMidi(songId: string) {
+    const song = state.songs.find(s => s.id === songId);
+    if (!song) {
+        alert("Could not find song to export as MIDI.");
+        Logger.warn(`Could not find song to export MIDI with id: ${songId}`, 'LibraryUI');
+        return;
+    }
+
+    try {
+        Logger.info(`Exporting MIDI for song: ${song.title}`, 'LibraryUI', { songId });
+        const midiData = songToMidi(song);
+        const blob = new Blob([midiData], { type: 'audio/midi' });
+        const url = URL.createObjectURL(blob);
+
+        const downloadAnchorNode = document.createElement('a');
+        const sanitizedTitle = song.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        
+        downloadAnchorNode.setAttribute("href", url);
+        downloadAnchorNode.setAttribute("download", `fretflow_${sanitizedTitle}.mid`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        URL.revokeObjectURL(url); // Clean up
+    } catch (err) {
+        Logger.error(err as Error, "handleExportMidi");
+        alert(`Failed to generate MIDI file: ${ (err as Error).message }`);
+    }
+}
+
+
 export function handleSongClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
 
@@ -31,6 +84,24 @@ export function handleSongClick(e: MouseEvent) {
         const songId = favoriteBtn.getAttribute('data-song-id');
         if (songId) {
             handleToggleFavorite(songId);
+        }
+        return;
+    }
+
+    const exportBtn = target.closest('.export-song-btn');
+    if (exportBtn) {
+        const songId = exportBtn.getAttribute('data-song-id');
+        if (songId) {
+            handleExportSong(songId);
+        }
+        return;
+    }
+
+    const exportMidiBtn = target.closest('.export-midi-btn');
+    if (exportMidiBtn) {
+        const songId = exportMidiBtn.getAttribute('data-song-id');
+        if (songId) {
+            handleExportMidi(songId);
         }
         return;
     }
@@ -88,6 +159,16 @@ function createSongElement(song: Song): HTMLElement {
         <div class="flex-shrink-0 flex items-center gap-1">
              <button class="favorite-btn p-2 rounded-full ${isFavorited ? 'favorited' : ''}" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" data-song-id="${song.id}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" style="pointer-events: none;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+             </button>
+             <button class="export-midi-btn p-2 rounded-full text-gray-500 hover:bg-purple-900/50 hover:text-purple-400 transition-colors" title="Export MIDI" data-song-id="${song.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style="pointer-events: none;">
+                    <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V7.82l8-1.6v5.894A4.369 4.369 0 0015 12c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V3z" />
+                </svg>
+             </button>
+             <button class="export-song-btn p-2 rounded-full text-gray-500 hover:bg-blue-900/50 hover:text-blue-400 transition-colors" title="Export song (JSON)" data-song-id="${song.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style="pointer-events: none;">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
              </button>
              <button class="delete-song-btn p-2 rounded-full text-gray-500 hover:bg-red-900/50 hover:text-red-400 transition-colors" title="Delete song" data-song-id="${song.id}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style="pointer-events: none;"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
